@@ -39,7 +39,7 @@ select * from phong_hoc;
 INSERT INTO phong_hoc VALUES ('202H3',N'H3',N'Co so 1');
 -------------------------------------------------------------------------------------------------------------
 CREATE TABLE mon_hoc (
-    ID VARCHAR(10) NOT NULL PRIMARY KEY,
+    ID VARCHAR(6) NOT NULL PRIMARY KEY,
     Ten_MH NVARCHAR(100) NOT NULL,
     So_TC SMALLINT NOT NULL
 );
@@ -51,7 +51,7 @@ CREATE TABLE nhom_lop (
 	tiet_ket_thuc VARCHAR(5) NOT NULL,
     Phong_hoc VARCHAR(50) NOT NULL,
 	id_giang_vien VARCHAR(10) NOT NULL,
-    id_monhoc VARCHAR(10) NOT NULL,
+    id_monhoc VARCHAR(6) NOT NULL,
 );
 ALTER TABLE nhom_lop ADD CONSTRAINT fk_nhom_lop_id_monhoc FOREIGN KEY (id_monhoc) REFERENCES mon_hoc(ID);
 ALTER TABLE nhom_lop ADD CONSTRAINT fk_nhom_lop_id_giang_vien FOREIGN KEY (id_giang_vien) REFERENCES Giang_Vien(ID);
@@ -80,7 +80,7 @@ ALTER TABLE Bien_Soan_GT ADD FOREIGN KEY (ID_TG) REFERENCES Tac_Gia(ID);
 -------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------
 CREATE TABLE Quanly_Lop_Hoc (
-    ID_Nhomlop VARCHAR(9) NOT NULL,
+    ID_Nhomlop VARCHAR(10) NOT NULL,
     ID_GV VARCHAR(10) NOT NULL,
     ID_SV VARCHAR(10) NOT NULL,
     PRIMARY KEY (ID_Nhomlop, ID_GV, ID_SV)
@@ -115,9 +115,6 @@ ALTER TABLE giang_day ADD FOREIGN KEY (ID_GV) REFERENCES Giang_Vien(ID);
 ALTER TABLE giang_day ADD FOREIGN KEY (ID_nhom_lop) REFERENCES Nhom_Lop(ID);
 -------------------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------------------
-
-
-DROP TABLE weeks;
 CREATE TABLE weeks (
     ID_MH VARCHAR(6) NOT NULL,
     week VARCHAR(2) NOT NULL,
