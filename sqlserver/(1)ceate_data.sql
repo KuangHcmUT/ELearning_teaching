@@ -54,10 +54,8 @@ CREATE TABLE pupil (
 CREATE TABLE subject (
     ID VARCHAR(10) NOT NULL,
     name NVARCHAR(255) NOT NULL,
-    credits INT NOT NULL CHECK (Credits > 0 AND Credits < 6),
+    credits INT NOT NULL CHECK (Credits > 0 AND Credits < 4),
 	PRIMARY KEY(ID),
-    FOREIGN KEY (DepartmentID) 
-        REFERENCES Department(ID)
 );
 
 ----------------------------------------------------------------------
@@ -139,19 +137,22 @@ CREATE TABLE attendsClass (
 CREATE TABLE manageSubject (
     ID INT NOT NULL IDENTITY(1,1),
     subjectID VARCHAR(10) NOT NULL,
-    Department INT NOT NULL,
+    lecturerID DECIMAL (7,0) NOT NULL,
+	textBookID DECIMAL (13,0) NOT NULL,
     PRIMARY KEY (ID),
     FOREIGN KEY (subjectID) 
         REFERENCES subject(ID),
     FOREIGN KEY (lecturerID) 
         REFERENCES lecturer(ID),
+	FOREIGN KEY (textBookID)
+		references textbook(Isbn)
 );
 ---------------------------------------------------------------------------
 /* 12 */
 CREATE TABLE assignsTextBook (
     ID INT NOT NULL IDENTITY(1,1),
     semester INT NOT NULL,
-    subjectID INT NOT NULL,
+    subjectID VARCHAR(10) NOT NULL,
     textbookID DECIMAL(13,0) NOT NULL, 
     PRIMARY KEY (ID),
     FOREIGN KEY (subjectID) 
@@ -249,7 +250,7 @@ as
 begin
 	delete from lecturer where DepartmentID = (SELECT deleted.ID FROM deleted);
 	delete from pupil  Where DepartmentID = (SELECT deleted.ID FROM deleted);
-	delete from subject Where DepartmentID = (SELECT deleted.ID FROM deleted);
+	-- delete from subject Where DepartmentID = (SELECT deleted.ID FROM deleted);
 	delete from Department Where ID = (SELECT deleted.ID FROM deleted);
 end;
 go
@@ -346,6 +347,7 @@ values
 INSERT INTO Enrolls (semester, pupilID,subjectID)
 values 
 ('201','210457','CO2004')
+
 INSERT INTO manageClass (classID, lecturerID)
 values 
 ('100','5012345')
@@ -354,17 +356,19 @@ INSERT INTO attendsClass (classID,pupilID)
 values 
 ('100','210457')
 
-INSERT INTO manageSubject (semester,subjectID, lecturerID)
+ALTER TABLE manageSubject
+ADD semester int not null;
+INSERT INTO manageSubject (semester,subjectID, lecturerID, textBookID)
 values 
-('201','CO2004','5012345')
+('201','CO2004','5012345', '10045788')
 
 INSERT INTO assignsTextBook (semester,subjectID, textbookID)
 values 
 ('201','CO2004','10045788')
 
-INSERT INTO teaches (week,classID, lecturerID)
+INSERT INTO teaches (week,classID, lecturerID, semester)
 values 
-('46','100','5012345')
+('46','100','5012345', '201')
 
 INSERT INTO useTextbook (subjectID,textbookID)
 values 
@@ -383,7 +387,11 @@ values
 /*            QUERY              */
 /*                               */
 /*********************************/
-
+/*********************************/
+/*                               */
+/*            QUERY              */
+/*                               */
+/*********************************/
 CREATE FUNCTION studentList(@classID VARCHAR(10)
 RETURNS TABLE
 RETURN
@@ -399,27 +407,77 @@ RETURN
 		WHERE classID = @classID
 )
 GO
+-------------------------------------------------------------------------------------------------------------
+SELECT class.name as ClassName, subject.name as subjectName, lecturer.ID as LecturerID,lecturer.full_name as LecturerName, manageSubject.semester 
+		FROM ((manageClass 
+		INNER JOIN lecturer ON manageClass.lecturerID = lecturer.ID)
+		INNER JOIN class ON class.ID = manageClass.classID), subject, manageSubject
+		where class.subjectID = subject.ID and subject.ID = manageSubject.subjectID
+;
 
-
-SELECT Enrolls.ID ,Enrolls.semester,pupil.full_name as StudentName,pupil.ID as MSSV , subject.name as courseName , subject.ID as courseID
+-------------------------------------------------------------------------------------------------------------
+SELECT subject.ID as courseID, subject.name as courseName, pupil.full_name as StudentName,pupil.ID as MSSV, Enrolls.semester
 		FROM ((Enrolls 
 		INNER JOIN pupil ON Enrolls.pupilID = pupil.ID)
 		INNER JOIN subject ON Enrolls.subjectID = subject.ID);
 
-SELECT manageClass.ID , class.name as className , lecturer.full_name as lecturerName , lecturer.ID as lecturerID
-		FROM ((manageClass 
-		INNER JOIN class ON manageClass.classID = class.ID)
-		INNER JOIN lecturer ON manageClass.lecturerID = lecturer.ID);
-
-SELECT manageSubject.ID , manageSubject.semester,Department.name as DepartmentName,subject.name as subjecName, subject.ID as courseID
+-------------------------------------------------------------------------------------------------------------
+SELECT manageSubject.semester,lecturer.full_name as lecturerName , lecturer.ID as lecturerID,subject.name as subjecName, subject.ID as courseID
 		FROM ((manageSubject 
-		INNER JOIN Department ON manageSubject.DepartmentID = lecturer.ID)
+		INNER JOIN lecturer ON manageSubject.lecturerID = lecturer.ID)
 		INNER JOIN subject ON manageSubject.subjectID = subject.ID);
-
+-------------------------------------------------------------------------------------------------------------
 SELECT  teaches.ID ,teaches.week , lecturer.full_name as lecturerName , lecturer.ID as lecturerID,class.name as className
 		FROM ((teaches 
 		INNER JOIN lecturer ON teaches.lecturerID = lecturer.ID)
 		INNER JOIN class ON teaches.classID = class.ID);
+
+
+--Roles--
+--create logins and users
+use master
+create login L_PDaoTao   with password = '1'
+create login L_QlyKhoa   with password = '1'
+create login L_GiangVien with password = '1'
+create login L_SinhVien  with password = '1'
+go
+use E_LEARNING_TEACHING_BETA
+create user U_PDaoTao   for login L_PDaoTao
+create user U_QlyKhoa   for login L_QlyKhoa
+create user U_GiangVien for login L_GiangVien
+create user U_SinhVien  for login L_SinhVien
+
+
+--create roles
+--Phòng đào tạo
+use E_LEARNING_TEACHING_BETA
+create role R_PDaoTao
+go
+alter role R_PDaoTao
+add member U_PDaoTao
+
+--Quản lý khoa
+use E_LEARNING_TEACHING_BETA
+create role R_QlyKhoa
+go
+alter role R_QlyKhoa
+add member U_QlyKhoa
+
+--Giảng viên
+use E_LEARNING_TEACHING_BETA
+create role R_GiangVien
+go
+alter role R_GiangVien
+add member U_GiangVien
+
+--Sinh viên
+use E_LEARNING_TEACHING_BETA
+create role R_SinhVien
+go
+alter role R_SinhVien
+add member U_SinhVien
+
+
 
 
 
